@@ -33,6 +33,7 @@ type Netra struct {
 	onUnlocked func()
 	isLeader   atomic.Bool
 	backend    Backend
+	stop       chan struct{}
 }
 
 type Config struct {
@@ -120,51 +121,63 @@ func (n *Netra) Run(ctx context.Context) error {
 	tryLockInterval := n.lockTTL
 	heatBeatInterval := time.Duration(float64(n.lockTTL) * 0.9) // 90% of lock's ttl
 
+	n.stop = make(chan struct{})
+
 	for {
-		if !n.isLeader.Load() {
-			ctx, cancel := context.WithTimeout(ctx, tryLockInterval)
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case <-n.stop:
+			close(n.stop)
+			n.stop = nil
+			return nil
+		default:
+			if !n.isLeader.Load() {
+				ctx, cancel := context.WithTimeout(ctx, tryLockInterval)
 
-			if _, err := n.backend.TryLock(ctx, n.lockName, n.nodeID); err != nil {
-				cancel()
+				if _, err := n.backend.TryLock(ctx, n.lockName, n.nodeID); err != nil {
+					cancel()
 
-				if errors.Is(err, backends.ErrLockExists) || errors.Is(err, context.DeadlineExceeded) {
-					time.Sleep(tryLockInterval)
-					continue
+					if errors.Is(err, backends.ErrLockExists) || errors.Is(err, context.DeadlineExceeded) {
+						time.Sleep(tryLockInterval)
+						continue
+					}
+
+					return err
 				}
 
-				return err
-			}
-
-			cancel()
-
-			n.isLeader.Store(true)
-			go n.onLocked()
-
-			time.Sleep(heatBeatInterval)
-		}
-
-		if n.isLeader.Load() {
-			ctx, cancel := context.WithTimeout(ctx, heatBeatInterval)
-
-			if err := n.HeartBeat(ctx); err != nil {
 				cancel()
 
-				if errors.Is(err, backends.ErrLockExists) || errors.Is(err, context.DeadlineExceeded) {
-					n.isLeader.Store(false)
-					go n.onUnlocked()
+				time.Sleep(heatBeatInterval)
+			} else {
+				ctx, cancel := context.WithTimeout(ctx, heatBeatInterval)
 
-					time.Sleep(tryLockInterval)
+				if err := n.HeartBeat(ctx); err != nil {
+					cancel()
 
-					continue
+					if errors.Is(err, backends.ErrLockExists) || errors.Is(err, context.DeadlineExceeded) {
+						n.isLeader.Store(false)
+						go n.onUnlocked()
+
+						time.Sleep(tryLockInterval)
+
+						continue
+					}
+
+					return err
 				}
 
-				return err
+				cancel()
+
+				time.Sleep(heatBeatInterval)
 			}
-
-			cancel()
-
-			time.Sleep(heatBeatInterval)
 		}
+	}
+}
+
+func (n *Netra) Stop() {
+	if n.stop != nil {
+		n.stop <- struct{}{}
 	}
 }
 
