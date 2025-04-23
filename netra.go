@@ -1,7 +1,9 @@
 package netra
 
 import (
+	"context"
 	"errors"
+	"netra/backends"
 	"sync/atomic"
 	"time"
 
@@ -18,8 +20,9 @@ var (
 )
 
 type Backend interface {
-	TryLock() (bool, error)
-	TryUnlock() (bool, error)
+	TryLock(ctx context.Context, lockName, nodeID string) (bool, error)
+	TryUnlock(ctx context.Context, lockName, nodeID string) (bool, error)
+	HeartBeat(ctx context.Context, lockName, nodeID string) error
 }
 
 type Netra struct {
@@ -78,14 +81,97 @@ func New(cfg *Config) (*Netra, error) {
 	return netra, nil
 }
 
-func TryLock() (bool, error) {
-	return false, nil
+func (n *Netra) TryLock(ctx context.Context) (bool, error) {
+	ok, err := n.backend.TryLock(ctx, n.lockName, n.nodeID)
+
+	if ok {
+		n.isLeader.Store(true)
+		go n.onLocked()
+	}
+
+	return ok, err
 }
 
-func TryUnlock() (bool, error) {
-	return false, nil
+func (n *Netra) TryUnlock(ctx context.Context) (bool, error) {
+	ok, err := n.backend.TryUnlock(ctx, n.lockName, n.nodeID)
+
+	if ok {
+		n.isLeader.Store(false)
+		go n.onUnlocked()
+	}
+
+	return ok, err
+}
+
+func (n *Netra) HeartBeat(ctx context.Context) error {
+	if err := n.backend.HeartBeat(ctx, n.lockName, n.nodeID); err != nil {
+		if errors.Is(err, backends.ErrLockExists) {
+			n.isLeader.Store(false)
+			go n.onUnlocked()
+		}
+
+		return err
+	}
+
+	return nil
+}
+
+func (n *Netra) Run(ctx context.Context) error {
+	tryLockInterval := n.lockTTL
+	heatBeatInterval := time.Duration(float64(n.lockTTL) * 0.9) // 90% of lock's ttl
+
+	for {
+		if !n.isLeader.Load() {
+			ctx, cancel := context.WithTimeout(ctx, tryLockInterval)
+
+			if _, err := n.backend.TryLock(ctx, n.lockName, n.nodeID); err != nil {
+				cancel()
+
+				if errors.Is(err, backends.ErrLockExists) || errors.Is(err, context.DeadlineExceeded) {
+					time.Sleep(tryLockInterval)
+					continue
+				}
+
+				return err
+			}
+
+			cancel()
+
+			n.isLeader.Store(true)
+			go n.onLocked()
+
+			time.Sleep(heatBeatInterval)
+		}
+
+		if n.isLeader.Load() {
+			ctx, cancel := context.WithTimeout(ctx, heatBeatInterval)
+
+			if err := n.HeartBeat(ctx); err != nil {
+				cancel()
+
+				if errors.Is(err, backends.ErrLockExists) || errors.Is(err, context.DeadlineExceeded) {
+					n.isLeader.Store(false)
+					go n.onUnlocked()
+
+					time.Sleep(tryLockInterval)
+
+					continue
+				}
+
+				return err
+			}
+
+			cancel()
+
+			time.Sleep(heatBeatInterval)
+		}
+	}
 }
 
 func (n *Netra) IsLeader() bool {
 	return n.isLeader.Load()
+}
+
+func (n *Netra) GetNodeID() string {
+	return n.nodeID
 }
