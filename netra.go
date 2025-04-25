@@ -10,9 +10,12 @@ import (
 	"github.com/google/uuid"
 )
 
+// Configuration defaults
 const (
-	defaultLockName = "NETRA:LOCK:729522b5-a3b3-47d1-875e-c65abbc04a3e"
-	defaultTTL      = 1 * time.Second
+	defaultLockName          = "NETRA:LOCK:729522b5-a3b3-47d1-875e-c65abbc04a3e"
+	defaultLockTTL           = 1 * time.Second
+	defaultTryLockInterval   = 1 * time.Second
+	defaultHeartBeatInterval = 500 * time.Millisecond
 )
 
 var (
@@ -26,22 +29,27 @@ type Backend interface {
 }
 
 type Netra struct {
-	lockName   string
-	nodeID     string
-	lockTTL    time.Duration
-	onLocked   func()
-	onUnlocked func()
-	isLeader   atomic.Bool
-	backend    Backend
-	stop       chan struct{}
+	lockName         string
+	nodeID           string
+	lockTTL          time.Duration
+	tryLockInterval  time.Duration
+	hearBeatInterval time.Duration
+	onLocked         func()
+	onLockLost       func()
+	onUnlocked       func()
+	isLeader         atomic.Bool
+	backend          Backend
 }
 
 type Config struct {
-	LockName   string
-	LockTTL    time.Duration
-	OnLocked   func()
-	OnUnlocked func()
-	Backend    Backend
+	LockName         string
+	LockTTL          time.Duration
+	TryLockInterval  time.Duration
+	HearBeatInterval time.Duration
+	OnLocked         func()
+	OnLockLost       func()
+	OnUnlocked       func()
+	Backend          Backend
 }
 
 func New(cfg *Config) (*Netra, error) {
@@ -58,13 +66,31 @@ func New(cfg *Config) (*Netra, error) {
 	if cfg.LockTTL >= 0 {
 		netra.lockTTL = cfg.LockTTL
 	} else {
-		netra.lockTTL = defaultTTL
+		netra.lockTTL = defaultLockTTL
+	}
+
+	if cfg.TryLockInterval >= 0 {
+		netra.tryLockInterval = cfg.TryLockInterval
+	} else {
+		netra.tryLockInterval = defaultTryLockInterval
+	}
+
+	if cfg.HearBeatInterval >= 0 {
+		netra.hearBeatInterval = cfg.HearBeatInterval
+	} else {
+		netra.hearBeatInterval = defaultHeartBeatInterval
 	}
 
 	if cfg.OnLocked != nil {
 		netra.onLocked = cfg.OnLocked
 	} else {
 		netra.onLocked = func() {}
+	}
+
+	if cfg.OnLockLost != nil {
+		netra.onLockLost = cfg.OnLockLost
+	} else {
+		netra.onLockLost = func() {}
 	}
 
 	if cfg.OnUnlocked != nil {
@@ -108,7 +134,7 @@ func (n *Netra) HeartBeat(ctx context.Context) error {
 	if err := n.backend.HeartBeat(ctx, n.lockName, n.nodeID); err != nil {
 		if errors.Is(err, backends.ErrLockExists) {
 			n.isLeader.Store(false)
-			go n.onUnlocked()
+			go n.onLockLost()
 		}
 
 		return err
@@ -118,66 +144,64 @@ func (n *Netra) HeartBeat(ctx context.Context) error {
 }
 
 func (n *Netra) Run(ctx context.Context) error {
-	tryLockInterval := n.lockTTL
-	heatBeatInterval := time.Duration(float64(n.lockTTL) * 0.9) // 90% of lock's ttl
-
-	n.stop = make(chan struct{})
-
 	for {
 		select {
 		case <-ctx.Done():
 			return ctx.Err()
-		case <-n.stop:
-			close(n.stop)
-			n.stop = nil
-			return nil
 		default:
-			if !n.isLeader.Load() {
-				ctx, cancel := context.WithTimeout(ctx, tryLockInterval)
+			tryLockTicker := time.NewTicker(n.tryLockInterval)
 
-				if _, err := n.backend.TryLock(ctx, n.lockName, n.nodeID); err != nil {
-					cancel()
+			for range tryLockTicker.C {
+				if !n.isLeader.Load() {
+					ctx, cancel := context.WithTimeout(ctx, n.tryLockInterval)
 
-					if errors.Is(err, backends.ErrLockExists) || errors.Is(err, context.DeadlineExceeded) {
-						time.Sleep(tryLockInterval)
-						continue
+					ok, err := n.TryLock(ctx)
+					if err != nil {
+						cancel()
+
+						if errors.Is(err, backends.ErrLockExists) || errors.Is(err, context.DeadlineExceeded) {
+							continue
+						}
+
+						return err
 					}
 
-					return err
-				}
-
-				cancel()
-
-				time.Sleep(heatBeatInterval)
-			} else {
-				ctx, cancel := context.WithTimeout(ctx, heatBeatInterval)
-
-				if err := n.HeartBeat(ctx); err != nil {
 					cancel()
 
-					if errors.Is(err, backends.ErrLockExists) || errors.Is(err, context.DeadlineExceeded) {
-						n.isLeader.Store(false)
-						go n.onUnlocked()
-
-						time.Sleep(tryLockInterval)
-
-						continue
+					if ok {
+						break
 					}
-
-					return err
+				} else {
+					break
 				}
-
-				cancel()
-
-				time.Sleep(heatBeatInterval)
 			}
-		}
-	}
-}
 
-func (n *Netra) Stop() {
-	if n.stop != nil {
-		n.stop <- struct{}{}
+			tryLockTicker.Stop()
+
+			heartBeatTicker := time.NewTicker(n.hearBeatInterval)
+
+			for range heartBeatTicker.C {
+				if n.isLeader.Load() {
+					ctx, cancel := context.WithTimeout(ctx, n.hearBeatInterval)
+
+					if err := n.HeartBeat(ctx); err != nil {
+						cancel()
+
+						if errors.Is(err, backends.ErrLockExists) || errors.Is(err, context.DeadlineExceeded) {
+							break
+						}
+
+						return err
+					}
+
+					cancel()
+				} else {
+					break
+				}
+			}
+
+			heartBeatTicker.Stop()
+		}
 	}
 }
 
