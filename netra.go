@@ -23,7 +23,7 @@ var (
 )
 
 type Backend interface {
-	TryLock(ctx context.Context, lockName, nodeID string) (bool, error)
+	TryLock(ctx context.Context, lockName, nodeID string, ttl time.Duration) (bool, error)
 	TryUnlock(ctx context.Context, lockName, nodeID string) (bool, error)
 	HeartBeat(ctx context.Context, lockName, nodeID string) error
 }
@@ -109,7 +109,7 @@ func New(cfg *Config) (*Netra, error) {
 }
 
 func (n *Netra) TryLock(ctx context.Context) (bool, error) {
-	ok, err := n.backend.TryLock(ctx, n.lockName, n.nodeID)
+	ok, err := n.backend.TryLock(ctx, n.lockName, n.nodeID, n.lockTTL)
 
 	if ok {
 		n.isLeader.Store(true)
