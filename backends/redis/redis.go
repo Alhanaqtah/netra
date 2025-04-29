@@ -3,6 +3,7 @@ package redis
 import (
 	"context"
 	_ "embed"
+	"errors"
 	"netra/backends"
 	"time"
 
@@ -15,11 +16,17 @@ var unlockLua string
 //go:embed unlock.lua
 var heartbeatLua string
 
+var ErrClientNotProvided = errors.New("client not provided")
+
 type Backend struct {
 	client *redis.Client
 }
 
-func New(ctx context.Context, client *redis.Client) (*Backend, error) {
+func New(client *redis.Client) (*Backend, error) {
+	if client == nil {
+		return nil, ErrClientNotProvided
+	}
+
 	return &Backend{
 		client: client,
 	}, nil
