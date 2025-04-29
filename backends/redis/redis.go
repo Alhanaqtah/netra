@@ -12,6 +12,9 @@ import (
 //go:embed unlock.lua
 var unlockLua string
 
+//go:embed unlock.lua
+var heartbeatLua string
+
 type Backend struct {
 	client *redis.Client
 }
@@ -29,7 +32,7 @@ func (b *Backend) TryLock(ctx context.Context, lockName, nodeID string, ttl time
 	}
 
 	if !ok {
-		return false, backends.ErrLockExists
+		return false, backends.ErrLockHeldByAnotherNode
 	}
 
 	return true, nil
@@ -44,5 +47,19 @@ func (b *Backend) TryUnlock(ctx context.Context, lockName, nodeID string) (bool,
 }
 
 func (b *Backend) HeartBeat(ctx context.Context, lockName, nodeID string) error {
+	res, err := b.client.Eval(ctx, heartbeatLua, []string{lockName}, nodeID).Result()
+	if err != nil {
+		return err
+	}
+
+	code := res.(int64)
+
+	if code == -1 {
+		return backends.ErrLockDoesNotExist
+	}
+	if code == 1 {
+		return backends.ErrAlreadyHoldingLock
+	}
+
 	return nil
 }
