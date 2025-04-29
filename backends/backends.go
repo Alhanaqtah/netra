@@ -3,6 +3,7 @@ package backends
 import "errors"
 
 var (
-	ErrLockExists        = errors.New("the lock is held by another node")
-	ErrAlreadyLockHolder = errors.New("already the lock holder")
+	ErrLockHeldByAnotherNode = errors.New("lock is held by another node")
+	ErrAlreadyHoldingLock    = errors.New("already holding the lock")
+	ErrLockDoesNotExist      = errors.New("lock does not exist")
 )

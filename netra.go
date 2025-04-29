@@ -132,7 +132,7 @@ func (n *Netra) TryUnlock(ctx context.Context) (bool, error) {
 
 func (n *Netra) HeartBeat(ctx context.Context) error {
 	if err := n.backend.HeartBeat(ctx, n.lockName, n.nodeID); err != nil {
-		if errors.Is(err, backends.ErrLockExists) {
+		if errors.Is(err, backends.ErrLockHeldByAnotherNode) || errors.Is(err, backends.ErrLockHeldByAnotherNode) {
 			n.isLeader.Store(false)
 			go n.onLockLost()
 		}
@@ -159,7 +159,7 @@ func (n *Netra) Run(ctx context.Context) error {
 					if err != nil {
 						cancel()
 
-						if errors.Is(err, backends.ErrLockExists) || errors.Is(err, context.DeadlineExceeded) {
+						if errors.Is(err, backends.ErrLockHeldByAnotherNode) || errors.Is(err, context.DeadlineExceeded) {
 							continue
 						}
 
@@ -187,7 +187,7 @@ func (n *Netra) Run(ctx context.Context) error {
 					if err := n.HeartBeat(ctx); err != nil {
 						cancel()
 
-						if errors.Is(err, backends.ErrLockExists) || errors.Is(err, context.DeadlineExceeded) {
+						if errors.Is(err, backends.ErrLockHeldByAnotherNode) || errors.Is(err, context.DeadlineExceeded) {
 							break
 						}
 
