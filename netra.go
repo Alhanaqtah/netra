@@ -25,7 +25,7 @@ var (
 type Backend interface {
 	TryLock(ctx context.Context, lockName, nodeID string, ttl time.Duration) (bool, error)
 	TryUnlock(ctx context.Context, lockName, nodeID string) (bool, error)
-	HeartBeat(ctx context.Context, lockName, nodeID string) error
+	HeartBeat(ctx context.Context, lockName, nodeID string, ttl time.Duration) error
 }
 
 type Netra struct {
@@ -131,7 +131,7 @@ func (n *Netra) TryUnlock(ctx context.Context) (bool, error) {
 }
 
 func (n *Netra) HeartBeat(ctx context.Context) error {
-	if err := n.backend.HeartBeat(ctx, n.lockName, n.nodeID); err != nil {
+	if err := n.backend.HeartBeat(ctx, n.lockName, n.nodeID, n.lockTTL); err != nil {
 		if errors.Is(err, backends.ErrLockHeldByAnotherNode) || errors.Is(err, backends.ErrLockHeldByAnotherNode) {
 			n.isLeader.Store(false)
 			go n.onLockLost()

@@ -4,11 +4,14 @@ import (
 	"context"
 	_ "embed"
 	"errors"
+	"netra"
 	"netra/backends"
 	"time"
 
 	"github.com/redis/go-redis/v9"
 )
+
+var _ netra.Backend = &Backend{}
 
 //go:embed lock.lua
 var lockLua string
