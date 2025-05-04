@@ -10,10 +10,13 @@ import (
 	"github.com/redis/go-redis/v9"
 )
 
+//go:embed lock.lua
+var lockLua string
+
 //go:embed unlock.lua
 var unlockLua string
 
-//go:embed unlock.lua
+//go:embed heartbeat.lua
 var heartbeatLua string
 
 var ErrClientNotProvided = errors.New("client not provided")
@@ -33,13 +36,18 @@ func New(client *redis.Client) (*Backend, error) {
 }
 
 func (b *Backend) TryLock(ctx context.Context, lockName, nodeID string, ttl time.Duration) (bool, error) {
-	ok, err := b.client.SetNX(ctx, lockName, nodeID, ttl).Result()
+	res, err := b.client.Eval(ctx, lockLua, []string{lockName}, nodeID, ttl.Milliseconds()).Result()
 	if err != nil {
 		return false, err
 	}
 
-	if !ok {
+	code := res.(int64)
+
+	switch code {
+	case -1:
 		return false, backends.ErrLockHeldByAnotherNode
+	case 1:
+		return false, backends.ErrAlreadyHoldingLock
 	}
 
 	return true, nil
@@ -53,19 +61,19 @@ func (b *Backend) TryUnlock(ctx context.Context, lockName, nodeID string) (bool,
 	return true, nil
 }
 
-func (b *Backend) HeartBeat(ctx context.Context, lockName, nodeID string) error {
-	res, err := b.client.Eval(ctx, heartbeatLua, []string{lockName}, nodeID).Result()
+func (b *Backend) HeartBeat(ctx context.Context, lockName, nodeID string, ttl time.Duration) error {
+	res, err := b.client.Eval(ctx, heartbeatLua, []string{lockName}, ttl.Milliseconds(), nodeID).Result()
 	if err != nil {
 		return err
 	}
 
 	code := res.(int64)
 
-	if code == -1 {
+	switch code {
+	case -1:
 		return backends.ErrLockDoesNotExist
-	}
-	if code == 1 {
-		return backends.ErrAlreadyHoldingLock
+	case 1:
+		return backends.ErrLockHeldByAnotherNode
 	}
 
 	return nil
