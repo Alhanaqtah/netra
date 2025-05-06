@@ -2,9 +2,10 @@ package redis
 
 import (
 	"context"
-	"netra/backends"
 	"testing"
 	"time"
+
+	"github.com/Alhanaqtah/netra/backends"
 
 	"github.com/google/uuid"
 	redis_client "github.com/redis/go-redis/v9"

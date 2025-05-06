@@ -3,9 +3,10 @@ package netra
 import (
 	"context"
 	"errors"
-	"netra/backends"
 	"sync/atomic"
 	"time"
+
+	"github.com/Alhanaqtah/netra/backends"
 
 	"github.com/google/uuid"
 )

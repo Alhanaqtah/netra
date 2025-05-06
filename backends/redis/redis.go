@@ -4,9 +4,10 @@ import (
 	"context"
 	_ "embed"
 	"errors"
-	"netra"
-	"netra/backends"
 	"time"
+
+	"github.com/Alhanaqtah/netra"
+	"github.com/Alhanaqtah/netra/backends"
 
 	"github.com/redis/go-redis/v9"
 )
