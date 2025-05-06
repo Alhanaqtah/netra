@@ -64,19 +64,19 @@ func New(cfg *Config) (*Netra, error) {
 
 	netra.nodeID = uuid.NewString()
 
-	if cfg.LockTTL >= 0 {
+	if cfg.LockTTL > 0 {
 		netra.lockTTL = cfg.LockTTL
 	} else {
 		netra.lockTTL = defaultLockTTL
 	}
 
-	if cfg.TryLockInterval >= 0 {
+	if cfg.TryLockInterval > 0 {
 		netra.tryLockInterval = cfg.TryLockInterval
 	} else {
 		netra.tryLockInterval = defaultTryLockInterval
 	}
 
-	if cfg.HearBeatInterval >= 0 {
+	if cfg.HearBeatInterval > 0 {
 		netra.hearBeatInterval = cfg.HearBeatInterval
 	} else {
 		netra.hearBeatInterval = defaultHeartBeatInterval
@@ -133,10 +133,11 @@ func (n *Netra) TryUnlock(ctx context.Context) (bool, error) {
 
 func (n *Netra) HeartBeat(ctx context.Context) error {
 	if err := n.backend.HeartBeat(ctx, n.lockName, n.nodeID, n.lockTTL); err != nil {
-		if errors.Is(err, backends.ErrLockHeldByAnotherNode) || errors.Is(err, backends.ErrLockHeldByAnotherNode) {
-			n.isLeader.Store(false)
+		if errors.Is(err, backends.ErrLockHeldByAnotherNode) || errors.Is(err, backends.ErrLockDoesNotExist) {
 			go n.onLockLost()
 		}
+
+		n.isLeader.Store(false)
 
 		return err
 	}

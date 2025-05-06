@@ -10,5 +10,13 @@ lint:
 	$(GOBIN)/golangci-lint run ./...
 
 .PHONY:
-test-backends:
+mock:
+	$(GOBIN)/mockery
+
+.PHONY:
+test.unit:
+	go test .
+
+.PHONY:
+test.integration:
 	go test -timeout=5m ./backends/...
