@@ -42,6 +42,7 @@ type Netra struct {
 
 type Config struct {
 	LockName         string
+	NodeID           string
 	LockTTL          time.Duration
 	TryLockInterval  time.Duration
 	HearBeatInterval time.Duration
@@ -60,7 +61,11 @@ func New(cfg *Config) (*Netra, error) {
 		netra.lockName = defaultLockName
 	}
 
-	netra.nodeID = uuid.NewString()
+	if cfg.NodeID != "" {
+		netra.nodeID = cfg.NodeID
+	} else {
+		netra.nodeID = uuid.NewString()
+	}
 
 	if cfg.LockTTL > 0 {
 		netra.lockTTL = cfg.LockTTL

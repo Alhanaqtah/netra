@@ -9,6 +9,7 @@ import (
 	"github.com/Alhanaqtah/netra/backends"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/require"
 )
 
 var (
@@ -40,9 +41,10 @@ func TestNew(t *testing.T) {
 		expectedError error
 	}{
 		{
-			name: "Succesfull",
+			name: "Provide full configuration",
 			cfg: Config{
 				LockName:         defaultLockName,
+				NodeID:           nodeID,
 				LockTTL:          lockTTL,
 				TryLockInterval:  10 * time.Second,
 				HearBeatInterval: 10 * time.Second,
@@ -62,6 +64,7 @@ func TestNew(t *testing.T) {
 			name: "Error: Backend not provided",
 			cfg: Config{
 				LockName:         defaultLockName,
+				NodeID:           nodeID,
 				LockTTL:          lockTTL,
 				TryLockInterval:  10 * time.Second,
 				HearBeatInterval: 10 * time.Second,
@@ -70,13 +73,12 @@ func TestNew(t *testing.T) {
 			expectedError: ErrBackendNotProvided,
 		},
 		{
-			name: "Config defaults",
+			name: "Unnecessary config fields not provided, defaults expected",
 			cfg: Config{
 				Backend: StubBackend{},
 			},
 			expectedNetra: &Netra{
 				lockName:         defaultLockName,
-				nodeID:           nodeID,
 				lockTTL:          defaultLockTTL,
 				tryLockInterval:  defaultTryLockInterval,
 				hearBeatInterval: defaultHeartBeatInterval,
@@ -89,14 +91,16 @@ func TestNew(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			n, err := New(&tc.cfg)
 
-			if n != nil {
-				n.nodeID = nodeID
-			}
-
 			assert.ErrorIs(t, err, tc.expectedError)
+
+			// because we cann't mock uuid.NewString()
+			if tc.cfg.NodeID == "" {
+				tc.expectedNetra.nodeID = n.nodeID
+			}
 
 			if n != nil {
 				assert.Equal(t, tc.expectedNetra.lockName, n.lockName)
+				assert.Equal(t, tc.expectedNetra.nodeID, n.nodeID)
 				assert.Equal(t, tc.expectedNetra.lockTTL, n.lockTTL)
 				assert.Equal(t, tc.expectedNetra.tryLockInterval, n.tryLockInterval)
 				assert.Equal(t, tc.expectedNetra.hearBeatInterval, n.hearBeatInterval)
@@ -331,9 +335,18 @@ func TestIsLeader(t *testing.T) {
 }
 
 func TestGetNodeID(t *testing.T) {
-	n := Netra{
-		nodeID: nodeID,
-	}
+	n, err := New(&Config{
+		NodeID:  nodeID,
+		Backend: StubBackend{},
+	})
 
-	assert.Equal(t, nodeID, n.GetNodeID())
+	require.NoError(t, err)
+	require.Equal(t, nodeID, n.GetNodeID())
+
+	n, err = New(&Config{
+		Backend: StubBackend{},
+	})
+
+	require.NoError(t, err)
+	require.Equal(t, n.nodeID, n.GetNodeID())
 }
