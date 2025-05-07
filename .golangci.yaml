@@ -1,1 +1,41 @@
 version: "2"
+run:
+  tests: true
+linters:
+  enable:
+    - dupl
+    - gocritic
+    - misspell
+    - nolintlint
+    - prealloc
+    - revive
+  settings:
+    errcheck:
+      check-type-assertions: true
+    revive:
+      severity: warning
+      rules:
+        - name: var-naming
+        - name: if-return
+        - name: dot-imports
+        - name: exported
+  exclusions:
+    generated: lax
+    presets:
+      - comments
+      - common-false-positives
+      - legacy
+      - std-error-handling
+    paths:
+      - third_party$
+      - builtin$
+      - examples$
+formatters:
+  enable:
+    - gofumpt
+  exclusions:
+    generated: lax
+    paths:
+      - third_party$
+      - builtin$
+      - examples$

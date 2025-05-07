@@ -94,7 +94,7 @@ func tryHeartBeatTest(ctx context.Context, t *testing.T, client *redis_client.Cl
 		t.Errorf("failed to set lock: %s\n", err)
 	}
 
-	// Successfull case
+	// Successful case
 	err = backend.HeartBeat(ctx, lockName, firstNodeID, ttl)
 	assert.NoError(t, err)
 

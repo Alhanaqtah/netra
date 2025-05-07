@@ -19,9 +19,7 @@ const (
 	defaultHeartBeatInterval = 500 * time.Millisecond
 )
 
-var (
-	ErrBackendNotProvided = errors.New("backend not provided")
-)
+var ErrBackendNotProvided = errors.New("backend not provided")
 
 type Backend interface {
 	TryLock(ctx context.Context, lockName, nodeID string, ttl time.Duration) (bool, error)

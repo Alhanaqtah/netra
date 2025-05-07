@@ -15,7 +15,7 @@ var (
 	lockName = "lock-name"
 	nodeID   = "node-id"
 	lockTTL  = 1 * time.Second
-	someErr  = errors.New("some error")
+	errSome  = errors.New("some error")
 )
 
 type StubBackend struct{}
@@ -136,11 +136,11 @@ func TestTryLock(t *testing.T) {
 					lockName,
 					nodeID,
 					lockTTL,
-				).Return(false, someErr).Once()
+				).Return(false, errSome).Once()
 			},
 			expectedIsLeader: false,
 			expectedOk:       false,
-			expectedError:    someErr,
+			expectedError:    errSome,
 		},
 	}
 
@@ -199,11 +199,11 @@ func TestUnlock(t *testing.T) {
 					mock.Anything,
 					lockName,
 					nodeID,
-				).Return(false, someErr).Once()
+				).Return(false, errSome).Once()
 			},
 			expectedIsLeader: true,
 			expectedOk:       false,
-			expectedError:    someErr,
+			expectedError:    errSome,
 		},
 	}
 
@@ -241,7 +241,7 @@ func TestHeartBeat(t *testing.T) {
 		expectedError    error
 	}{
 		{
-			name: "Successfull case",
+			name: "Successful case",
 			setup: func(m *MockBackend) {
 				m.On("HeartBeat",
 					mock.Anything,
@@ -287,10 +287,10 @@ func TestHeartBeat(t *testing.T) {
 					lockName,
 					nodeID,
 					lockTTL,
-				).Return(someErr).Once()
+				).Return(errSome).Once()
 			},
 			expectedIsLeader: false,
-			expectedError:    someErr,
+			expectedError:    errSome,
 		},
 	}
 

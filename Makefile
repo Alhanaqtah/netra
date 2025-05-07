@@ -11,6 +11,10 @@ lint:
 	$(GOBIN)/golangci-lint run ./...
 
 .PHONY:
+fmt:
+	gofumpt -l -w .
+
+.PHONY:
 mock:
 	$(GOBIN)/mockery
 

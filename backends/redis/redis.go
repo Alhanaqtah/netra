@@ -45,7 +45,7 @@ func (b *Backend) TryLock(ctx context.Context, lockName, nodeID string, ttl time
 		return false, err
 	}
 
-	code := res.(int64)
+	code, _ := res.(int64)
 
 	switch code {
 	case -1:
@@ -71,7 +71,7 @@ func (b *Backend) HeartBeat(ctx context.Context, lockName, nodeID string, ttl ti
 		return err
 	}
 
-	code := res.(int64)
+	code, _ := res.(int64)
 
 	switch code {
 	case -1:
