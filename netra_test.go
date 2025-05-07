@@ -36,27 +36,72 @@ func TestNew(t *testing.T) {
 	tests := []struct {
 		name          string
 		cfg           Config
+		expectedNetra *Netra
 		expectedError error
 	}{
 		{
 			name: "Succesfull",
 			cfg: Config{
-				Backend: StubBackend{},
+				LockName:         defaultLockName,
+				LockTTL:          lockTTL,
+				TryLockInterval:  10 * time.Second,
+				HearBeatInterval: 10 * time.Second,
+				Backend:          StubBackend{},
+			},
+			expectedNetra: &Netra{
+				lockName:         defaultLockName,
+				nodeID:           nodeID,
+				lockTTL:          lockTTL,
+				tryLockInterval:  10 * time.Second,
+				hearBeatInterval: 10 * time.Second,
+				backend:          StubBackend{},
 			},
 			expectedError: nil,
 		},
 		{
-			name:          "Error: Backend not provided",
-			cfg:           Config{},
+			name: "Error: Backend not provided",
+			cfg: Config{
+				LockName:         defaultLockName,
+				LockTTL:          lockTTL,
+				TryLockInterval:  10 * time.Second,
+				HearBeatInterval: 10 * time.Second,
+			},
+			expectedNetra: nil,
 			expectedError: ErrBackendNotProvided,
+		},
+		{
+			name: "Config defaults",
+			cfg: Config{
+				Backend: StubBackend{},
+			},
+			expectedNetra: &Netra{
+				lockName:         defaultLockName,
+				nodeID:           nodeID,
+				lockTTL:          defaultLockTTL,
+				tryLockInterval:  defaultTryLockInterval,
+				hearBeatInterval: defaultHeartBeatInterval,
+			},
+			expectedError: nil,
 		},
 	}
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			_, err := New(&tc.cfg)
+			n, err := New(&tc.cfg)
+
+			if n != nil {
+				n.nodeID = nodeID
+			}
 
 			assert.ErrorIs(t, err, tc.expectedError)
+
+			if n != nil {
+				assert.Equal(t, tc.expectedNetra.lockName, n.lockName)
+				assert.Equal(t, tc.expectedNetra.lockTTL, n.lockTTL)
+				assert.Equal(t, tc.expectedNetra.tryLockInterval, n.tryLockInterval)
+				assert.Equal(t, tc.expectedNetra.hearBeatInterval, n.hearBeatInterval)
+				assert.NotNil(t, n.backend)
+			}
 		})
 	}
 }
