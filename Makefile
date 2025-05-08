@@ -24,4 +24,11 @@ test.unit:
 
 .PHONY:
 test.integration:
-	go test -timeout=5m ./backends/...
+	go test -timeout=1m ./backends/...
+
+.PHONY:
+test.e2e:
+	go test -timeout=1m ./e2e
+
+.PHONY:
+test: test.unit test.integration test.e2e

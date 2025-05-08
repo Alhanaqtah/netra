@@ -157,28 +157,35 @@ func (n *Netra) Run(ctx context.Context) error {
 			tryLockTicker := time.NewTicker(n.tryLockInterval)
 
 			for range tryLockTicker.C {
-				if !n.isLeader.Load() {
-					ctx, cancel := context.WithTimeout(ctx, n.tryLockInterval)
+				if n.isLeader.Load() {
+					break
+				}
 
-					ok, err := n.TryLock(ctx)
-					if err != nil {
-						cancel()
+				tryLockСtx, tryLockCancel := context.WithTimeout(ctx, n.tryLockInterval)
 
-						if errors.Is(err, backends.ErrLockHeldByAnotherNode) || errors.Is(err, context.DeadlineExceeded) {
-							continue
-						}
+				if _, err := n.TryLock(tryLockСtx); err != nil {
+					tryLockCancel()
 
+					if errors.Is(err, backends.ErrLockHeldByAnotherNode) {
+						continue
+					}
+
+					// Must be checked before [tryLockCtx] to distinguish
+					// [context.Canceled] and [context.DeadlineExceeded] errors
+					if ctx.Err() != nil {
 						return err
 					}
 
-					cancel()
-
-					if ok {
-						break
+					if errors.Is(tryLockСtx.Err(), context.DeadlineExceeded) {
+						continue
 					}
-				} else {
-					break
+
+					return err
 				}
+
+				tryLockCancel()
+
+				break
 			}
 
 			tryLockTicker.Stop()
@@ -186,23 +193,33 @@ func (n *Netra) Run(ctx context.Context) error {
 			heartBeatTicker := time.NewTicker(n.hearBeatInterval)
 
 			for range heartBeatTicker.C {
-				if n.isLeader.Load() {
-					ctx, cancel := context.WithTimeout(ctx, n.hearBeatInterval)
+				if !n.isLeader.Load() {
+					break
+				}
 
-					if err := n.HeartBeat(ctx); err != nil {
-						cancel()
+				heartBeatCtx, heartBeatCancel := context.WithTimeout(ctx, n.hearBeatInterval)
 
-						if errors.Is(err, backends.ErrLockHeldByAnotherNode) || errors.Is(err, context.DeadlineExceeded) {
-							break
-						}
+				if err := n.HeartBeat(ctx); err != nil {
+					heartBeatCancel()
 
+					if errors.Is(err, backends.ErrLockHeldByAnotherNode) {
+						break
+					}
+
+					// Must be checked before [tryLockCtx] to distinguish
+					// [context.Canceled] and [context.DeadlineExceeded] errors
+					if ctx.Err() != nil {
 						return err
 					}
 
-					cancel()
-				} else {
-					break
+					if errors.Is(heartBeatCtx.Err(), context.DeadlineExceeded) {
+						continue
+					}
+
+					return err
 				}
+
+				heartBeatCancel()
 			}
 
 			heartBeatTicker.Stop()
