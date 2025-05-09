@@ -87,29 +87,20 @@ func (_c *MockBackend_HeartBeat_Call) RunAndReturn(run func(ctx context.Context,
 }
 
 // TryLock provides a mock function for the type MockBackend
-func (_mock *MockBackend) TryLock(ctx context.Context, lockName string, nodeID string, ttl time.Duration) (bool, error) {
+func (_mock *MockBackend) TryLock(ctx context.Context, lockName string, nodeID string, ttl time.Duration) error {
 	ret := _mock.Called(ctx, lockName, nodeID, ttl)
 
 	if len(ret) == 0 {
 		panic("no return value specified for TryLock")
 	}
 
-	var r0 bool
-	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string, time.Duration) (bool, error)); ok {
-		return returnFunc(ctx, lockName, nodeID, ttl)
-	}
-	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string, time.Duration) bool); ok {
+	var r0 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string, time.Duration) error); ok {
 		r0 = returnFunc(ctx, lockName, nodeID, ttl)
 	} else {
-		r0 = ret.Get(0).(bool)
+		r0 = ret.Error(0)
 	}
-	if returnFunc, ok := ret.Get(1).(func(context.Context, string, string, time.Duration) error); ok {
-		r1 = returnFunc(ctx, lockName, nodeID, ttl)
-	} else {
-		r1 = ret.Error(1)
-	}
-	return r0, r1
+	return r0
 }
 
 // MockBackend_TryLock_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'TryLock'
@@ -133,40 +124,31 @@ func (_c *MockBackend_TryLock_Call) Run(run func(ctx context.Context, lockName s
 	return _c
 }
 
-func (_c *MockBackend_TryLock_Call) Return(b bool, err error) *MockBackend_TryLock_Call {
-	_c.Call.Return(b, err)
+func (_c *MockBackend_TryLock_Call) Return(err error) *MockBackend_TryLock_Call {
+	_c.Call.Return(err)
 	return _c
 }
 
-func (_c *MockBackend_TryLock_Call) RunAndReturn(run func(ctx context.Context, lockName string, nodeID string, ttl time.Duration) (bool, error)) *MockBackend_TryLock_Call {
+func (_c *MockBackend_TryLock_Call) RunAndReturn(run func(ctx context.Context, lockName string, nodeID string, ttl time.Duration) error) *MockBackend_TryLock_Call {
 	_c.Call.Return(run)
 	return _c
 }
 
 // TryUnlock provides a mock function for the type MockBackend
-func (_mock *MockBackend) TryUnlock(ctx context.Context, lockName string, nodeID string) (bool, error) {
+func (_mock *MockBackend) TryUnlock(ctx context.Context, lockName string, nodeID string) error {
 	ret := _mock.Called(ctx, lockName, nodeID)
 
 	if len(ret) == 0 {
 		panic("no return value specified for TryUnlock")
 	}
 
-	var r0 bool
-	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string) (bool, error)); ok {
-		return returnFunc(ctx, lockName, nodeID)
-	}
-	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string) bool); ok {
+	var r0 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string) error); ok {
 		r0 = returnFunc(ctx, lockName, nodeID)
 	} else {
-		r0 = ret.Get(0).(bool)
+		r0 = ret.Error(0)
 	}
-	if returnFunc, ok := ret.Get(1).(func(context.Context, string, string) error); ok {
-		r1 = returnFunc(ctx, lockName, nodeID)
-	} else {
-		r1 = ret.Error(1)
-	}
-	return r0, r1
+	return r0
 }
 
 // MockBackend_TryUnlock_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'TryUnlock'
@@ -189,12 +171,12 @@ func (_c *MockBackend_TryUnlock_Call) Run(run func(ctx context.Context, lockName
 	return _c
 }
 
-func (_c *MockBackend_TryUnlock_Call) Return(b bool, err error) *MockBackend_TryUnlock_Call {
-	_c.Call.Return(b, err)
+func (_c *MockBackend_TryUnlock_Call) Return(err error) *MockBackend_TryUnlock_Call {
+	_c.Call.Return(err)
 	return _c
 }
 
-func (_c *MockBackend_TryUnlock_Call) RunAndReturn(run func(ctx context.Context, lockName string, nodeID string) (bool, error)) *MockBackend_TryUnlock_Call {
+func (_c *MockBackend_TryUnlock_Call) RunAndReturn(run func(ctx context.Context, lockName string, nodeID string) error) *MockBackend_TryUnlock_Call {
 	_c.Call.Return(run)
 	return _c
 }

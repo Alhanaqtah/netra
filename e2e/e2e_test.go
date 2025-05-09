@@ -74,7 +74,7 @@ func runTest(t *testing.T, ctx context.Context, backend1, backend2, backend3 net
 		counter.Add(1)
 
 		if counter.Load() > 1 {
-			t.Error("split brain happend")
+			t.Error("split brain happened")
 		}
 	}
 
@@ -156,7 +156,7 @@ func runTest(t *testing.T, ctx context.Context, backend1, backend2, backend3 net
 
 	wg.Wait()
 
-	// Waiting untill lock expire
+	// Waiting until lock expire
 	time.Sleep(lockTTL)
 }
 
@@ -169,8 +169,7 @@ func lowLevelAPITest(t *testing.T, ctx context.Context, backend netra.Backend) {
 	tryLockCtx, tryLockCancel := context.WithTimeout(ctx, 1*time.Second)
 	defer tryLockCancel()
 
-	ok, err := n.TryLock(tryLockCtx)
-	assert.Equal(t, ok, true)
+	err := n.TryLock(tryLockCtx)
 	assert.NoError(t, err)
 
 	heartBeatCtx, heartBeatCancel := context.WithTimeout(ctx, 1*time.Second)
@@ -182,8 +181,7 @@ func lowLevelAPITest(t *testing.T, ctx context.Context, backend netra.Backend) {
 	tryUnlockCtx, tryUnlockCancel := context.WithTimeout(ctx, 1*time.Second)
 	defer tryUnlockCancel()
 
-	ok, err = n.TryUnlock(tryUnlockCtx)
-	assert.Equal(t, ok, true)
+	err = n.TryUnlock(tryUnlockCtx)
 	assert.NoError(t, err)
 }
 

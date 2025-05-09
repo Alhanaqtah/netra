@@ -1,9 +1,9 @@
 all: false
-dir: '{{.InterfaceDir}}'
+dir: 'mocks'
 filename: mocks.go
 force-file-write: true
 structname: '{{.Mock}}{{.InterfaceName}}'
-pkgname: '{{.SrcPackageName}}'
+pkgname: '{{.SrcPackageName}}_mocks'
 packages:
   github.com/Alhanaqtah/netra:
     interfaces:

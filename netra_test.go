@@ -23,12 +23,12 @@ var (
 
 type StubBackend struct{}
 
-func (sb StubBackend) TryLock(ctx context.Context, lockName, nodeID string, ttl time.Duration) (bool, error) {
-	return false, nil
+func (sb StubBackend) TryLock(ctx context.Context, lockName, nodeID string, ttl time.Duration) error {
+	return nil
 }
 
-func (sb StubBackend) TryUnlock(ctx context.Context, lockName, nodeID string) (bool, error) {
-	return false, nil
+func (sb StubBackend) TryUnlock(ctx context.Context, lockName, nodeID string) error {
+	return nil
 }
 
 func (sb StubBackend) HeartBeat(ctx context.Context, lockName, nodeID string, ttl time.Duration) error {
@@ -117,7 +117,6 @@ func TestTryLock(t *testing.T) {
 		name             string
 		setup            func(m *netra_mocks.MockBackend)
 		expectedIsLeader bool
-		expectedOk       bool
 		expectedError    error
 	}{
 		{
@@ -128,10 +127,9 @@ func TestTryLock(t *testing.T) {
 					lockName,
 					nodeID,
 					lockTTL,
-				).Return(true, nil).Once()
+				).Return(nil).Once()
 			},
 			expectedIsLeader: true,
-			expectedOk:       true,
 			expectedError:    nil,
 		},
 		{
@@ -142,10 +140,9 @@ func TestTryLock(t *testing.T) {
 					lockName,
 					nodeID,
 					lockTTL,
-				).Return(false, errSome).Once()
+				).Return(errSome).Once()
 			},
 			expectedIsLeader: false,
-			expectedOk:       false,
 			expectedError:    errSome,
 		},
 	}
@@ -165,10 +162,9 @@ func TestTryLock(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			tc.setup(backend)
 
-			ok, err := n.TryLock(context.Background())
+			err := n.TryLock(context.Background())
 
 			assert.Equal(t, tc.expectedIsLeader, n.isLeader.Load())
-			assert.Equal(t, tc.expectedOk, ok)
 			assert.ErrorIs(t, err, tc.expectedError)
 
 			// Clean
@@ -182,7 +178,6 @@ func TestUnlock(t *testing.T) {
 		name             string
 		setup            func(m *netra_mocks.MockBackend)
 		expectedIsLeader bool
-		expectedOk       bool
 		expectedError    error
 	}{
 		{
@@ -192,10 +187,9 @@ func TestUnlock(t *testing.T) {
 					mock.Anything,
 					lockName,
 					nodeID,
-				).Return(true, nil).Once()
+				).Return(nil).Once()
 			},
 			expectedIsLeader: false,
-			expectedOk:       true,
 			expectedError:    nil,
 		},
 		{
@@ -205,10 +199,9 @@ func TestUnlock(t *testing.T) {
 					mock.Anything,
 					lockName,
 					nodeID,
-				).Return(false, errSome).Once()
+				).Return(errSome).Once()
 			},
 			expectedIsLeader: true,
-			expectedOk:       false,
 			expectedError:    errSome,
 		},
 	}
@@ -228,10 +221,9 @@ func TestUnlock(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			tc.setup(backend)
 
-			ok, err := n.TryUnlock(context.Background())
+			err := n.TryUnlock(context.Background())
 
 			assert.Equal(t, tc.expectedIsLeader, n.isLeader.Load())
-			assert.Equal(t, tc.expectedOk, ok)
 			assert.ErrorIs(t, err, tc.expectedError)
 		})
 

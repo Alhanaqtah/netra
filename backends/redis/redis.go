@@ -1,3 +1,4 @@
+// Redis backend.
 package redis
 
 import (
@@ -23,12 +24,15 @@ var unlockLua string
 //go:embed heartbeat.lua
 var heartbeatLua string
 
+// ErrClientNotProvided returns if redis client was not provided.
 var ErrClientNotProvided = errors.New("client not provided")
 
+// Backend is redis client wrapper.
 type Backend struct {
 	client *redis.Client
 }
 
+// New creates new backend instance.
 func New(client *redis.Client) (*Backend, error) {
 	if client == nil {
 		return nil, ErrClientNotProvided
@@ -39,32 +43,35 @@ func New(client *redis.Client) (*Backend, error) {
 	}, nil
 }
 
-func (b *Backend) TryLock(ctx context.Context, lockName, nodeID string, ttl time.Duration) (bool, error) {
+// TryLock attempts to acquire a lock.
+func (b *Backend) TryLock(ctx context.Context, lockName, nodeID string, ttl time.Duration) error {
 	res, err := b.client.Eval(ctx, lockLua, []string{lockName}, nodeID, ttl.Milliseconds()).Result()
 	if err != nil {
-		return false, err
+		return err
 	}
 
 	code, _ := res.(int64)
 
 	switch code {
 	case -1:
-		return false, backends.ErrLockHeldByAnotherNode
+		return backends.ErrLockHeldByAnotherNode
 	case 1:
-		return false, backends.ErrAlreadyHoldingLock
+		return backends.ErrAlreadyHoldingLock
 	}
 
-	return true, nil
+	return nil
 }
 
-func (b *Backend) TryUnlock(ctx context.Context, lockName, nodeID string) (bool, error) {
+// TryUnlock attempts to unlock the lock.
+func (b *Backend) TryUnlock(ctx context.Context, lockName, nodeID string) error {
 	if _, err := b.client.Eval(ctx, unlockLua, []string{lockName}, nodeID).Result(); err != nil {
-		return false, err
+		return err
 	}
 
-	return true, nil
+	return nil
 }
 
+// HeartBeat attempts to extend the lifetime of the lock.
 func (b *Backend) HeartBeat(ctx context.Context, lockName, nodeID string, ttl time.Duration) error {
 	res, err := b.client.Eval(ctx, heartbeatLua, []string{lockName}, ttl.Milliseconds(), nodeID).Result()
 	if err != nil {

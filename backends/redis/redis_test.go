@@ -55,13 +55,13 @@ func tryLockTest(ctx context.Context, t *testing.T, client *redis_client.Client,
 	firstNodeID := uuid.NewString()
 	secondNodeID := uuid.NewString()
 
-	_, err := backend.TryLock(ctx, lockName, firstNodeID, 5*time.Second)
+	err := backend.TryLock(ctx, lockName, firstNodeID, 5*time.Second)
 	assert.NoError(t, err)
 
-	_, err = backend.TryLock(ctx, lockName, firstNodeID, 1*time.Second)
+	err = backend.TryLock(ctx, lockName, firstNodeID, 1*time.Second)
 	assert.ErrorIs(t, err, backends.ErrAlreadyHoldingLock)
 
-	_, err = backend.TryLock(ctx, lockName, secondNodeID, 1*time.Second)
+	err = backend.TryLock(ctx, lockName, secondNodeID, 1*time.Second)
 	assert.ErrorIs(t, err, backends.ErrLockHeldByAnotherNode)
 
 	// Clean
@@ -77,7 +77,7 @@ func tryUnlockTest(ctx context.Context, t *testing.T, client *redis_client.Clien
 		t.Errorf("faield to set lock: %s\n", err)
 	}
 
-	_, err := backend.TryUnlock(ctx, lockName, nodeID)
+	err := backend.TryUnlock(ctx, lockName, nodeID)
 	assert.NoError(t, err)
 }
 

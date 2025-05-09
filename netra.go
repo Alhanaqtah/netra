@@ -1,3 +1,6 @@
+// Netra is a simple library for creating distributed locks
+// based on various backends to choose from, providing both
+// low-level and high-level API for working with locks.
 package netra
 
 import (
@@ -11,7 +14,6 @@ import (
 	"github.com/google/uuid"
 )
 
-// Configuration defaults
 const (
 	defaultLockName          = "NETRA:LOCK:729522b5-a3b3-47d1-875e-c65abbc04a3e"
 	defaultLockTTL           = 1 * time.Second
@@ -19,11 +21,13 @@ const (
 	defaultHeartBeatInterval = 500 * time.Millisecond
 )
 
+// ErrBackendNotProvided is returned when trying to create a nertra client without providing a backend.
 var ErrBackendNotProvided = errors.New("backend not provided")
 
+// Backend describes the methods that the storage backend must implement.
 type Backend interface {
-	TryLock(ctx context.Context, lockName, nodeID string, ttl time.Duration) (bool, error)
-	TryUnlock(ctx context.Context, lockName, nodeID string) (bool, error)
+	TryLock(ctx context.Context, lockName, nodeID string, ttl time.Duration) error
+	TryUnlock(ctx context.Context, lockName, nodeID string) error
 	HeartBeat(ctx context.Context, lockName, nodeID string, ttl time.Duration) error
 }
 
@@ -41,17 +45,34 @@ type Netra struct {
 }
 
 type Config struct {
-	LockName         string
-	NodeID           string
-	LockTTL          time.Duration
-	TryLockInterval  time.Duration
+	// LockName is used to specify the name of the lock in the database
+	// in which the nodeID will be stored. By default.
+	// By default is "NETRA:LOCK:729522b5-a3b3-47d1-875e-c65abbc04a3e".
+	LockName string
+	// NodeID is used to retain the leader by storing by lockName.
+	// If not specified, a default UUID is generated.
+	NodeID string
+	// LockTTL sets the lock lifetime. By default is 1 second.
+	LockTTL time.Duration
+	// TryLockInterval is the interval at which an attempt will be made
+	// to set a lock by the [netra.Run] function.
+	TryLockInterval time.Duration
+	// HearBeatInterval is the interval at which an attempt will be made
+	// to extend the lock by the [netra.Run] function.
 	HearBeatInterval time.Duration
-	OnLocked         func()
-	OnLockLost       func()
-	OnUnlocked       func()
-	Backend          Backend
+	// OnLocked hook that runs asynchronously when a lock is set.
+	OnLocked func()
+	// OnLockLost hook that is executed asynchronously
+	// when a lock is intentionally removed.
+	OnLockLost func()
+	// OnUnlocked hook that is executed asynchronously
+	// when the lock is lost (for example, due to network delays).
+	OnUnlocked func()
+	// Backend stores the implementation of the interface [Backend] implementing interaction with storage.
+	Backend Backend
 }
 
+// New creates a new Netra instance.
 func New(cfg *Config) (*Netra, error) {
 	netra := &Netra{}
 
@@ -112,28 +133,34 @@ func New(cfg *Config) (*Netra, error) {
 	return netra, nil
 }
 
-func (n *Netra) TryLock(ctx context.Context) (bool, error) {
-	ok, err := n.backend.TryLock(ctx, n.lockName, n.nodeID, n.lockTTL)
+// TryLock attempts to acquire a lock. If successful, it asynchronously executes the [Config.OnLocked] hook
+// and starts considering the node as a leader, otherwise it returns error.
+func (n *Netra) TryLock(ctx context.Context) error {
+	err := n.backend.TryLock(ctx, n.lockName, n.nodeID, n.lockTTL)
 
-	if ok {
+	if err == nil {
 		n.isLeader.Store(true)
 		go n.onLocked()
 	}
 
-	return ok, err
+	return err
 }
 
-func (n *Netra) TryUnlock(ctx context.Context) (bool, error) {
-	ok, err := n.backend.TryUnlock(ctx, n.lockName, n.nodeID)
+// TryUnlock attempts to unlock the lock. If successful, it asynchronously executes the [Config.OnUnlocked] hook
+// and stops considering the node as a leader, otherwise it returns an error.
+func (n *Netra) TryUnlock(ctx context.Context) error {
+	err := n.backend.TryUnlock(ctx, n.lockName, n.nodeID)
 
-	if ok {
+	if err == nil {
 		n.isLeader.Store(false)
 		go n.onUnlocked()
 	}
 
-	return ok, err
+	return err
 }
 
+// HeartBeat attempts to extend the lifetime of the lock. If this fails, it asynchronously
+// executes the [Config.OnLockLost] hook and stops considering the node as a leader.
 func (n *Netra) HeartBeat(ctx context.Context) error {
 	if err := n.backend.HeartBeat(ctx, n.lockName, n.nodeID, n.lockTTL); err != nil {
 		if errors.Is(err, backends.ErrLockHeldByAnotherNode) || errors.Is(err, backends.ErrLockDoesNotExist) {
@@ -148,6 +175,9 @@ func (n *Netra) HeartBeat(ctx context.Context) error {
 	return nil
 }
 
+// Run tries to establish a lock with a frequency of [Config.TryLockInterval] and
+// extends it with a frequency of [Config.HeartBeatInterval] until an unhandled error occurs.
+// If the lead is lost, it starts trying to establish it again.
 func (n *Netra) Run(ctx context.Context) error {
 	for {
 		select {
@@ -163,7 +193,7 @@ func (n *Netra) Run(ctx context.Context) error {
 
 				tryLockСtx, tryLockCancel := context.WithTimeout(ctx, n.tryLockInterval)
 
-				if _, err := n.TryLock(tryLockСtx); err != nil {
+				if err := n.TryLock(tryLockСtx); err != nil {
 					tryLockCancel()
 
 					if errors.Is(err, backends.ErrLockHeldByAnotherNode) {
@@ -227,10 +257,12 @@ func (n *Netra) Run(ctx context.Context) error {
 	}
 }
 
+// IsLeader returns whether the node is a leader.
 func (n *Netra) IsLeader() bool {
 	return n.isLeader.Load()
 }
 
+// Returns node's id.
 func (n *Netra) GetNodeID() string {
 	return n.nodeID
 }
