@@ -2,7 +2,7 @@
 // github.com/vektra/mockery
 // template: testify
 
-package netra
+package netra_mocks
 
 import (
 	"context"

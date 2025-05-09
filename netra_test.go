@@ -7,6 +7,8 @@ import (
 	"time"
 
 	"github.com/Alhanaqtah/netra/backends"
+	netra_mocks "github.com/Alhanaqtah/netra/mocks"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
@@ -113,14 +115,14 @@ func TestNew(t *testing.T) {
 func TestTryLock(t *testing.T) {
 	tests := []struct {
 		name             string
-		setup            func(m *MockBackend)
+		setup            func(m *netra_mocks.MockBackend)
 		expectedIsLeader bool
 		expectedOk       bool
 		expectedError    error
 	}{
 		{
 			name: "Succesfull case",
-			setup: func(m *MockBackend) {
+			setup: func(m *netra_mocks.MockBackend) {
 				m.On("TryLock",
 					mock.Anything,
 					lockName,
@@ -134,7 +136,7 @@ func TestTryLock(t *testing.T) {
 		},
 		{
 			name: "Error case",
-			setup: func(m *MockBackend) {
+			setup: func(m *netra_mocks.MockBackend) {
 				m.On("TryLock",
 					mock.Anything,
 					lockName,
@@ -148,7 +150,7 @@ func TestTryLock(t *testing.T) {
 		},
 	}
 
-	backend := new(MockBackend)
+	backend := new(netra_mocks.MockBackend)
 
 	n, err := New(&Config{
 		Backend: backend,
@@ -178,14 +180,14 @@ func TestTryLock(t *testing.T) {
 func TestUnlock(t *testing.T) {
 	tests := []struct {
 		name             string
-		setup            func(m *MockBackend)
+		setup            func(m *netra_mocks.MockBackend)
 		expectedIsLeader bool
 		expectedOk       bool
 		expectedError    error
 	}{
 		{
 			name: "Succesfull case",
-			setup: func(m *MockBackend) {
+			setup: func(m *netra_mocks.MockBackend) {
 				m.On("TryUnlock",
 					mock.Anything,
 					lockName,
@@ -198,7 +200,7 @@ func TestUnlock(t *testing.T) {
 		},
 		{
 			name: "Error case",
-			setup: func(m *MockBackend) {
+			setup: func(m *netra_mocks.MockBackend) {
 				m.On("TryUnlock",
 					mock.Anything,
 					lockName,
@@ -211,7 +213,7 @@ func TestUnlock(t *testing.T) {
 		},
 	}
 
-	backend := new(MockBackend)
+	backend := new(netra_mocks.MockBackend)
 
 	n, err := New(&Config{
 		Backend: backend,
@@ -240,13 +242,13 @@ func TestUnlock(t *testing.T) {
 func TestHeartBeat(t *testing.T) {
 	tests := []struct {
 		name             string
-		setup            func(m *MockBackend)
+		setup            func(m *netra_mocks.MockBackend)
 		expectedIsLeader bool
 		expectedError    error
 	}{
 		{
 			name: "Successful case",
-			setup: func(m *MockBackend) {
+			setup: func(m *netra_mocks.MockBackend) {
 				m.On("HeartBeat",
 					mock.Anything,
 					lockName,
@@ -259,7 +261,7 @@ func TestHeartBeat(t *testing.T) {
 		},
 		{
 			name: "Lock held by another node",
-			setup: func(m *MockBackend) {
+			setup: func(m *netra_mocks.MockBackend) {
 				m.On("HeartBeat",
 					mock.Anything,
 					lockName,
@@ -272,7 +274,7 @@ func TestHeartBeat(t *testing.T) {
 		},
 		{
 			name: "Lock doesn't exist",
-			setup: func(m *MockBackend) {
+			setup: func(m *netra_mocks.MockBackend) {
 				m.On("HeartBeat",
 					mock.Anything,
 					lockName,
@@ -285,7 +287,7 @@ func TestHeartBeat(t *testing.T) {
 		},
 		{
 			name: "Some another error",
-			setup: func(m *MockBackend) {
+			setup: func(m *netra_mocks.MockBackend) {
 				m.On("HeartBeat",
 					mock.Anything,
 					lockName,
@@ -298,7 +300,7 @@ func TestHeartBeat(t *testing.T) {
 		},
 	}
 
-	backend := new(MockBackend)
+	backend := new(netra_mocks.MockBackend)
 
 	n, err := New(&Config{
 		Backend: backend,
