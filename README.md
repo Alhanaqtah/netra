@@ -14,6 +14,11 @@ go get -u github.com/Alhanaqtah/netra
 - **IsLeader**: returns whether the node is a leader.
 - **GetNodeID**: returns node's id.
 
+## Hooks
+- **OnLocked**: executes asynchronously when a lock is set.
+- **OnUnlocked**: executes asynchronously when a lock is intentionally removed.
+- **OnLockLost**: executes asynchronously when the lock is lost (for example, due to network delays).
+
 ## Supported backends
 - [x] Redis
 - [ ] etcd
