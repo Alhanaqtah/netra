@@ -26,7 +26,7 @@ import (
 	"time"
 
 	"github.com/Alhanaqtah/netra"
-	"github.com/Alhanaqtah/netra/backends/redis"
+	"github.com/Alhanaqtah/netra/backends/v0.0.0/redis"
 	redis_client "github.com/redis/go-redis/v9"
 )
 

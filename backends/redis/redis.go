@@ -7,8 +7,8 @@ import (
 	"errors"
 	"time"
 
-	"github.com/Alhanaqtah/netra"
-	"github.com/Alhanaqtah/netra/backends"
+	netra "github.com/Alhanaqtah/netra/v0.0.0"
+	"github.com/Alhanaqtah/netra/v0.0.0/backends"
 
 	"github.com/redis/go-redis/v9"
 )
