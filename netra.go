@@ -1,4 +1,4 @@
-// Netra is a simple library for creating distributed locks
+// Netra is a simple library for leader election
 // based on various backends to choose from, providing both
 // low-level and high-level API for working with locks.
 package netra
