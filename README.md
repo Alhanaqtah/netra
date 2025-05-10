@@ -49,20 +49,11 @@ func main() {
 		return
 	}
 
-	if err := n.TryLock(context.Background()); err != nil {
-		log.Println("err: ", err)
-		return
-	}
+	_ = n.TryLock(context.Background())
 
-	if err := n.HeartBeat(context.Background()); err != nil {
-		log.Println("err: ", err)
-		return
-	}
+	_ = n.HeartBeat(context.Background())
 
-	if err := n.TryUnlock(context.Background()); err != nil {
-		log.Println("err: ", err)
-		return
-	}
+	_ = n.TryUnlock(context.Background())
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
@@ -72,5 +63,4 @@ func main() {
 		return
 	}
 }
-
 ```
