@@ -9,7 +9,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/Alhanaqtah/netra/v0.0.0/backends"
+	"github.com/Alhanaqtah/netra/backends"
 	"github.com/google/uuid"
 )
 

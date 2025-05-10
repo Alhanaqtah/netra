@@ -6,8 +6,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/Alhanaqtah/netra/v0.0.0/backends"
-	netra_mocks "github.com/Alhanaqtah/netra/v0.0.0/mocks"
+	"github.com/Alhanaqtah/netra/backends"
+	netra_mocks "github.com/Alhanaqtah/netra/mocks"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"

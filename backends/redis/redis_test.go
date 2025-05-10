@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	backends "github.com/Alhanaqtah/netra/v0.0.0/backends"
+	backends "github.com/Alhanaqtah/netra/backends"
 
 	"github.com/google/uuid"
 	redis_client "github.com/redis/go-redis/v9"

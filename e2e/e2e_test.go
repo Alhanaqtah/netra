@@ -8,8 +8,8 @@ import (
 	"testing"
 	"time"
 
-	netra "github.com/Alhanaqtah/netra/v0.0.0"
-	redis_backend "github.com/Alhanaqtah/netra/v0.0.0/backends/redis"
+	netra "github.com/Alhanaqtah/netra"
+	redis_backend "github.com/Alhanaqtah/netra/backends/redis"
 
 	redis_client "github.com/redis/go-redis/v9"
 	"github.com/stretchr/testify/assert"
