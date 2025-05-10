@@ -59,7 +59,7 @@ type Config struct {
 	// HearBeatInterval is the interval at which an attempt will be made
 	// to extend the lock by the [netra.Run] function.
 	HearBeatInterval time.Duration
-	// OnLocked hook that runs asynchronously when a lock is set.
+	// OnLocked hook executes asynchronously when a lock is set.
 	OnLocked func()
 	// OnLockLost hook that is executed asynchronously
 	// when a lock is intentionally removed.
