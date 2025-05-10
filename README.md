@@ -11,10 +11,14 @@ go get -u github.com/Alhanaqtah/netra
 - **HeartBeat**: attempts to extend the lifetime of the lock.
 - **TryUnlock**: attempts to unlock the lock.
 - **Run**: attempts to establish a lock with the frequency of the specified intervaland extends it with the frequency of the specified interval.
+- **IsLeader**: returns whether the node is a leader.
+- **GetNodeID**: returns node's id.
 
 ## Supported backends
 - [x] Redis
-- [ ] ...
+- [ ] etcd
+- [ ] MongoDB
+- [ ] PostgreSQL
 
 ## Example
 ```go
