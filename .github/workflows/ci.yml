@@ -1,0 +1,45 @@
+name: CI
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up go
+      uses: actions/setup-go@v4
+      with:
+        go-version: '1.24'
+    
+    - name: Install dependencies
+      run: go mod tidy
+
+    - name: Golangci-lint
+      uses: golangci/golangci-lint-action@v6.0.1
+
+    - name: Run integration tests for each backend and save coverage
+      run: |
+        for dir in backends/*; do
+          if [ -d "$dir" ]; then
+            go test "./$dir/..." -coverprofile="$dir/cover.out"
+          fi
+        done
+
+    - name: Check coverage for each backend
+      run: |
+        for dir in backends/*; do
+          if [ -f "$dir/cover.out" ]; then
+            COVERAGE=$(go tool cover -func="$dir/cover.out" | grep total | awk '{print $3}' | sed 's/%//')
+            if (( $(echo "$COVERAGE < 80" | bc -l) )); then
+              echo "Test coverage for $dir is below 80%!"
+              exit 1
+            fi
+          fi
+        done
