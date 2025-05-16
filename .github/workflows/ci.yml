@@ -13,18 +13,20 @@ jobs:
     steps:
     - uses: actions/checkout@v4
 
-    - name: Set up go
+    - name: setup go
       uses: actions/setup-go@v4
       with:
         go-version: '1.24'
     
-    - name: Install dependencies
+    - name: install dependencies
       run: go mod tidy
 
-    - name: Golangci-lint
-      uses: golangci/golangci-lint-action@v6.0.1
+    - name: lint
+      uses: golangci/golangci-lint-action@v8
+          with:
+            version: v2.1
 
-    - name: Run integration tests for each backend and save coverage
+    - name: run integration tests for each backend and save coverage
       run: |
         for dir in backends/*; do
           if [ -d "$dir" ]; then
@@ -32,7 +34,7 @@ jobs:
           fi
         done
 
-    - name: Check coverage for each backend
+    - name: check coverage for each backend
       run: |
         for dir in backends/*; do
           if [ -f "$dir/cover.out" ]; then
