@@ -23,8 +23,8 @@ jobs:
 
     - name: lint
       uses: golangci/golangci-lint-action@v8
-          with:
-            version: v2.1
+      with:
+        version: v2.1
 
     - name: run integration tests for each backend and save coverage
       run: |
