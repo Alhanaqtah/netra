@@ -21,7 +21,10 @@ const (
 )
 
 // ErrBackendNotProvided is returned when trying to create a nertra client without providing a backend.
-var ErrBackendNotProvided = errors.New("backend not provided")
+var (
+	ErrBackendNotProvided = errors.New("backend not provided")
+	ErrConfigNotProvided  = errors.New("config not provided")
+)
 
 // Backend describes the methods that the storage backend must implement.
 type Backend interface {
@@ -73,6 +76,10 @@ type Config struct {
 
 // New creates a new Netra instance.
 func New(cfg *Config) (*Netra, error) {
+	if cfg == nil {
+		return nil, ErrConfigNotProvided
+	}
+
 	netra := &Netra{}
 
 	if cfg.LockName != "" {

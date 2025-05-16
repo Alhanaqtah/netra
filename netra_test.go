@@ -38,13 +38,13 @@ func (sb StubBackend) HeartBeat(ctx context.Context, lockName, nodeID string, tt
 func TestNew(t *testing.T) {
 	tests := []struct {
 		name          string
-		cfg           Config
+		cfg           *Config
 		expectedNetra *Netra
 		expectedError error
 	}{
 		{
 			name: "Provide full configuration",
-			cfg: Config{
+			cfg: &Config{
 				LockName:         defaultLockName,
 				NodeID:           nodeID,
 				LockTTL:          lockTTL,
@@ -64,7 +64,7 @@ func TestNew(t *testing.T) {
 		},
 		{
 			name: "Error: Backend not provided",
-			cfg: Config{
+			cfg: &Config{
 				LockName:         defaultLockName,
 				NodeID:           nodeID,
 				LockTTL:          lockTTL,
@@ -76,7 +76,7 @@ func TestNew(t *testing.T) {
 		},
 		{
 			name: "Unnecessary config fields not provided, defaults expected",
-			cfg: Config{
+			cfg: &Config{
 				Backend: StubBackend{},
 			},
 			expectedNetra: &Netra{
@@ -87,16 +87,22 @@ func TestNew(t *testing.T) {
 			},
 			expectedError: nil,
 		},
+		{
+			name:          "Error: Config not provided",
+			cfg:           nil,
+			expectedNetra: nil,
+			expectedError: ErrConfigNotProvided,
+		},
 	}
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			n, err := New(&tc.cfg)
+			n, err := New(tc.cfg)
 
 			assert.ErrorIs(t, err, tc.expectedError)
 
 			// because we cann't mock uuid.NewString()
-			if tc.cfg.NodeID == "" {
+			if tc.cfg != nil && tc.cfg.NodeID == "" {
 				tc.expectedNetra.nodeID = n.nodeID
 			}
 
