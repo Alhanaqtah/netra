@@ -22,8 +22,6 @@ go get -u github.com/Alhanaqtah/netra
 ## Supported backends
 - [x] Redis
 - [ ] etcd
-- [ ] MongoDB
-- [ ] PostgreSQL
 
 ## Example
 ```go
