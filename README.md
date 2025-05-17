@@ -56,13 +56,15 @@ func main() {
 		return
 	}
 
-	_ = n.TryLock(context.Background())
+	ctx := context.Background()
 
-	_ = n.HeartBeat(context.Background())
+	n.TryLock(ctx)
 
-	_ = n.TryUnlock(context.Background())
+	n.HeartBeat(ctx)
 
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	n.TryUnlock(ctx)
+
+	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
 
 	if err := n.Run(ctx); err != nil {
